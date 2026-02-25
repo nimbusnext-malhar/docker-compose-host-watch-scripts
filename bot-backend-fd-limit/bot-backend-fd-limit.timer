@@ -1,0 +1,10 @@
+[Unit]
+Description=Run PowerShell Job every 5 min
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=55min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
