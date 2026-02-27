@@ -2,7 +2,7 @@
 # watches services of async-worker 
 ## and recreates it if the total disk usage goes above limit
 $env = '/home/civitaiusr/.env'
-$max_allowed_du_bytes = 25 * 1024 * 1024 * 1024 # convert to bytes -- here 25 GB
+$max_allowed_du_bytes = 15 * 1024 * 1024 * 1024 # convert to bytes -- here 25 GB
 $service_name = 'async-workers'
 $compose_file = '/home/civitaiusr/docker-compose.yml'
 
