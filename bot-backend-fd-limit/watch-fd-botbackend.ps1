@@ -16,7 +16,7 @@ if ([int]$current_fd_count -gt [int]$max_allowed_fd_count) {
 	# You can add the command to recreate the container here, e.g.:
 	# docker run --name $container_name ...
 	# handoff to bash script to start the container using docker compose
-	bash ~/start.sh
+	bash /home/civitaiusr/start.sh
 
 } else {
 	Write-Host "File descriptor count ($current_fd_count) is within the allowed limit ($max_allowed_fd_count). No action needed."
