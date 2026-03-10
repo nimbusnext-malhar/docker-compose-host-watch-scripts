@@ -54,8 +54,13 @@ $connection_details = $connections | ForEach-Object {
 
 $connection_details
 
-$connection_details | Where-Object { $_.ServiceName -ne 'Unknown' -and $_.ConnectionCount -gt $max_conn_per_service } | ForEach-Object {
-	Write-Warning "Service '$($_.ServiceName)' (Container: $($_.ContainerName)) has $($_.ConnectionCount) connections from IP $($_.ClientAddress). Restarting container to mitigate potential issues."
-	docker restart $_.ContainerId
+## Check connection limits and log/restart as needed
+foreach ($detail in ($connection_details | Where-Object { $_.ContainerId -ne 'Unknown' })) {
+	if ($detail.ConnectionCount -gt $max_conn_per_service) {
+		Write-Warning "Service '$($detail.ServiceName)' (Container: $($detail.ContainerName)) has $($detail.ConnectionCount) connections from IP $($detail.ClientAddress). Restarting container to mitigate potential issues."
+		docker restart $detail.ContainerId
+	} else {
+		Write-Host "Service '$($detail.ServiceName)' (Container: $($detail.ContainerName)) has $($detail.ConnectionCount) connections from IP $($detail.ClientAddress). Status: Normal"
+	}
 }
 	

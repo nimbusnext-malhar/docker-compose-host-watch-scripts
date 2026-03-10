@@ -4,6 +4,7 @@ Description=Serive to run powershell script for checking container fd limits on 
 [Service]
 Type=oneshot
 WorkingDirectory=/home/civitaiusr
+Environment="HOME=/home/civitaiusr"
 ExecStart=/usr/bin/pwsh -File /home/civitaiusr/host-watch-scripts/bot-backend-fd-limit/watch-fd-botbackend.ps1
 StandardOutput=journal
 StandardError=journal
