@@ -1,0 +1,11 @@
+[Unit]
+Description=Service to run powershell script for checking Django PostgreSQL connection pool limits on an interval
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/civitaiusr
+Environment="HOME=/home/civitaiusr"
+ExecStart=/usr/bin/pwsh -File /home/civitaiusr/host-watch-scripts/django-pgpool-limit/django-pgpool-limit.ps1
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=django-pgpool-limit
