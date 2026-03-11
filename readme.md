@@ -6,7 +6,7 @@ This directory contains automated monitoring and maintenance scripts for Docker 
 
 The monitoring solutions in this directory are designed to:
 - Run periodically via systemd timers
-- Monitor specific container metrics (file descriptors, disk usage)
+- Monitor specific container metrics (file descriptors, disk usage, database connections, error logs)
 - Automatically restart or recreate containers when thresholds are exceeded
 - Log all activities to systemd journal for debugging
 
@@ -55,6 +55,56 @@ Monitors the **disk usage (DU)** of `async-worker` containers.
 **Quick start:**
 ```bash
 cd async-worker-du-limit
+make install-start    # Install and start the monitoring
+make status           # Check if it's running
+make logs             # View recent logs
+```
+
+### `pg-connectionpool-limit/`
+
+Monitors **PostgreSQL connection pool usage** across all services.
+
+**What it does:**
+- Queries PostgreSQL for active connections grouped by client IP
+- Maps client IPs to Docker containers using service names
+- Restarts containers if connection count exceeds the limit (default: 10 connections per service)
+- Runs every **5 minutes** (triggered 5 minutes after boot)
+
+**Key files:**
+- `pg-connectionpool-limit.ps1` - PowerShell script that performs the monitoring
+- `pg-connectionpool-limit.service` - Systemd service definition
+- `pg-connectionpool-limit.timer` - Systemd timer (5-minute interval)
+- `Makefile` - Management commands for install/start/stop/status/logs
+- `readme.md` - Detailed documentation
+
+**Quick start:**
+```bash
+cd pg-connectionpool-limit
+make install-start    # Install and start the monitoring
+make status           # Check if it's running
+make logs             # View recent logs
+```
+
+### `django-pgpool-limit/`
+
+Monitors **Django backend logs for PostgreSQL connection errors**.
+
+**What it does:**
+- Checks logs of `http-backend` containers for database connection errors
+- Detects connection pool timeouts, too many connections, connection refused, and other critical errors
+- Automatically restarts containers experiencing database connection issues
+- Runs every **5 minutes** (triggered 5 minutes after boot)
+
+**Key files:**
+- `django-pgpool-limit.ps1` - PowerShell script that performs the monitoring
+- `django-pgpool-limit.service` - Systemd service definition
+- `django-pgpool-limit.timer` - Systemd timer (5-minute interval)
+- `Makefile` - Management commands for install/start/stop/status/logs
+- `readme.md` - Detailed documentation
+
+**Quick start:**
+```bash
+cd django-pgpool-limit
 make install-start    # Install and start the monitoring
 make status           # Check if it's running
 make logs             # View recent logs
@@ -139,22 +189,37 @@ make install-start # Install and start in one command
 All scripts log to systemd journal. View logs using:
 
 ```bash
-# View logs for bot-backend monitoring
+# View logs for individual services
 sudo journalctl -u bot-backend-fd-limit.service -f
-
-# View logs for async-worker monitoring
 sudo journalctl -u async-worker-du-limit.service -f
+sudo journalctl -u pg-connectionpool-limit.service -f
+sudo journalctl -u django-pgpool-limit.service -f
 
-# View all logs without pagination
-sudo journalctl -u bot-backend-fd-limit.service --no-pager
-sudo journalctl -u async-worker-du-limit.service --no-pager
+# View all watch service logs combined
+sudo journalctl -u async-worker-du-limit.service \
+                -u bot-backend-fd-limit.service \
+                -u django-pgpool-limit.service \
+                -u pg-connectionpool-limit.service \
+                -n 50 --no-pager
+
+# Follow all watch services in real-time
+sudo journalctl -u async-worker-du-limit.service \
+                -u bot-backend-fd-limit.service \
+                -u django-pgpool-limit.service \
+                -u pg-connectionpool-limit.service \
+                -f
+
+# List all watch service timers and schedules
+sudo systemctl list-timers '*-limit.timer'
 ```
 
-Or use the Makefile:
+Or use the Makefile in each directory:
 
 ```bash
 cd bot-backend-fd-limit && make logs
-cd async-worker-du-limit && make logs-all
+cd async-worker-du-limit && make logs
+cd pg-connectionpool-limit && make logs
+cd django-pgpool-limit && make logs
 ```
 
 ## Adding New Monitoring Scripts
@@ -174,9 +239,15 @@ To add a new monitoring script, follow this pattern:
 - Scripts use **oneshot** service type (run once per trigger, then exit)
 - All output goes to **systemd journal** (journalctl)
 - Scripts load environment variables from **~/.env**
-- Container removal triggers **~/start.sh** to reconcile services
+- Different remediation strategies:
+  - **Container removal**: `bot-backend-fd-limit`, `async-worker-du-limit` (triggers `~/start.sh` to reconcile)
+  - **Container restart**: `pg-connectionpool-limit`, `django-pgpool-limit` (direct restart via docker)
+- Timers use **OnActiveSec** to ensure scheduling works after timer restarts
+- Timer intervals vary by service (5min, 55min, 56min) to avoid overlapping execution
 
 ## See Also
 
 - [bot-backend-fd-limit documentation](bot-backend-fd-limit/readme.md)
 - [async-worker-du-limit documentation](async-worker-du-limit/readme.md)
+- [pg-connectionpool-limit documentation](pg-connectionpool-limit/readme.md)
+- [django-pgpool-limit documentation](django-pgpool-limit/readme.md)
