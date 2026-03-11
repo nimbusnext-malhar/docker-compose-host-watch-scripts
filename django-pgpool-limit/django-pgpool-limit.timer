@@ -1,10 +1,10 @@
 [Unit]
-Description=Run Django PostgreSQL connection pool check every 5 min
+Description=Run Django PostgreSQL connection pool check every 2 min
 
 [Timer]
 OnBootSec=5min
 OnActiveSec=5min
-OnUnitActiveSec=5min
+OnUnitActiveSec=2min
 Persistent=true
 
 [Install]
